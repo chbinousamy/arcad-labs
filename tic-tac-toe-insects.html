@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morpion des Insectes</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@300;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0e1a0f;
+    --panel:    #141f14;
+    --bark:     #2a1f14;
+    --moss:     #1e3320;
+    --leaf:     #2d5a27;
+    --lime:     #6dbf4a;
+    --amber:    #e8a020;
+    --rust:     #c94a1a;
+    --cream:    #f0e8d0;
+    --glow-a:   #7fff5a;
+    --glow-b:   #ff9820;
+    --grid-line:#2a4a28;
+    --cell-bg:  #192a19;
+    --cell-hover:#223a22;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated background foliage */
+  .bg-layer {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .leaf-bg {
+    position: absolute;
+    border-radius: 50% 5% 50% 5%;
+    opacity: 0.06;
+    animation: sway 8s ease-in-out infinite;
+  }
+  @keyframes sway {
+    0%,100% { transform: rotate(var(--r0)) scale(1); }
+    50%      { transform: rotate(var(--r1)) scale(1.04); }
+  }
+
+  /* Firefly particles */
+  .firefly {
+    position: fixed;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--glow-a);
+    box-shadow: 0 0 6px 2px var(--glow-a);
+    animation: fly var(--dur) ease-in-out infinite var(--delay);
+    pointer-events: none; z-index: 1;
+  }
+  @keyframes fly {
+    0%   { transform: translate(0,0); opacity: 0; }
+    20%  { opacity: 1; }
+    50%  { transform: translate(var(--tx), var(--ty)); opacity: 0.8; }
+    80%  { opacity: 0.4; }
+    100% { transform: translate(0,0); opacity: 0; }
+  }
+
+  /* Main container */
+  .container {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 24px;
+  }
+
+  /* Title */
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(22px, 4vw, 36px);
+    color: var(--cream);
+    letter-spacing: 2px;
+    text-align: center;
+    text-shadow: 0 0 30px rgba(109,191,74,0.4);
+  }
+  h1 span { color: var(--lime); font-style: normal; }
+
+  /* Score bar */
+  .scorebar {
+    display: flex; gap: 32px; align-items: center;
+  }
+  .score-box {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--grid-line);
+    border-radius: 12px;
+    padding: 10px 22px;
+    min-width: 90px;
+    transition: border-color .3s, box-shadow .3s;
+  }
+  .score-box.active-turn {
+    border-color: var(--lime);
+    box-shadow: 0 0 18px rgba(109,191,74,0.25);
+  }
+  .score-label {
+    font-size: 10px; letter-spacing: 2px;
+    color: rgba(240,232,208,0.5); text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .score-icon { font-size: 28px; line-height: 1; }
+  .score-num {
+    font-size: 22px; font-weight: 500;
+    color: var(--cream); margin-top: 4px;
+  }
+  .vs { color: var(--grid-line); font-size: 13px; letter-spacing: 3px; }
+
+  /* Status */
+  .status {
+    font-size: 13px; letter-spacing: 2px;
+    color: var(--lime); text-transform: uppercase;
+    min-height: 20px; text-align: center;
+    transition: opacity .3s;
+  }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background: var(--grid-line);
+    border: 2px solid var(--grid-line);
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .cell {
+    width: clamp(90px, 20vw, 130px);
+    height: clamp(90px, 20vw, 130px);
+    background: var(--cell-bg);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background .2s, transform .15s;
+  }
+  .cell:hover:not(.taken) {
+    background: var(--cell-hover);
+    transform: scale(1.03);
+  }
+  .cell.taken { cursor: default; }
+  .cell.won {
+    background: rgba(109,191,74,0.12);
+    box-shadow: inset 0 0 20px rgba(109,191,74,0.2);
+  }
+
+  /* Insect SVGs */
+  .insect-wrap {
+    width: 70%; height: 70%;
+    display: flex; align-items: center; justify-content: center;
+    animation: land .35s cubic-bezier(.17,.67,.35,1.4);
+    transform-origin: center;
+  }
+  @keyframes land {
+    0%  { transform: scale(0) rotate(-30deg); opacity: 0; }
+    70% { transform: scale(1.15) rotate(5deg); opacity: 1; }
+    100%{ transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .insect-wrap svg { width: 100%; height: 100%; }
+
+  /* Win line overlay */
+  .win-line {
+    position: absolute; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--lime), transparent);
+    border-radius: 3px;
+    z-index: 5;
+    animation: drawLine .4s ease forwards;
+  }
+  @keyframes drawLine {
+    from { opacity: 0; transform: scaleX(0); }
+    to   { opacity: 1; transform: scaleX(1); }
+  }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 12px; }
+  button {
+    background: none;
+    border: 1px solid var(--grid-line);
+    color: rgba(240,232,208,0.6);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  button:hover {
+    border-color: var(--lime);
+    color: var(--lime);
+    box-shadow: 0 0 14px rgba(109,191,74,0.15);
+  }
+
+  /* Mode label */
+  .mode-label {
+    font-size: 10px; letter-spacing: 2px;
+    color: rgba(240,232,208,0.25);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- Background leaves -->
+<div class="bg-layer" id="bgLayer"></div>
+
+<div class="container">
+  <h1>Morpion des<br><span>Insectes</span></h1>
+
+  <div class="scorebar">
+    <div class="score-box" id="boxA">
+      <div class="score-label">Joueur 1</div>
+      <div class="score-icon">🐞</div>
+      <div class="score-num" id="scoreA">0</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="score-box" id="boxB">
+      <div class="score-label" id="p2label">Joueur 2</div>
+      <div class="score-icon">🦗</div>
+      <div class="score-num" id="scoreB">0</div>
+    </div>
+  </div>
+
+  <div class="status" id="status">À vous de jouer !</div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="btn-row">
+    <button id="btnRestart">Rejouer</button>
+    <button id="btnAI">vs IA</button>
+  </div>
+  <div class="mode-label" id="modeLabel">Mode 2 joueurs</div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let board       = Array(9).fill(null);
+let current     = 'A';  // 'A' = ladybug, 'B' = cricket
+let gameOver    = false;
+let scores      = { A: 0, B: 0 };
+let vsAI        = false;
+let aiThinking  = false;
+
+const WINS = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+// ── SVG Insects ────────────────────────────────────────────────────────────
+
+// Player A: Coccinelle (ladybug) — red & black
+function svgLadybug() {
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <!-- Antennae -->
+    <line x1="42" y1="18" x2="30" y2="4"  stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58" y1="18" x2="70" y2="4"  stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="29" cy="3"  r="2.5" fill="#1a1a1a"/>
+    <circle cx="71" cy="3"  r="2.5" fill="#1a1a1a"/>
+    <!-- Legs -->
+    <line x1="28" y1="52" x2="10" y2="44" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="28" y1="60" x2="8"  y2="60" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="30" y1="68" x2="12" y2="76" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="72" y1="52" x2="90" y2="44" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="72" y1="60" x2="92" y2="60" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="70" y1="68" x2="88" y2="76" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Body shadow -->
+    <ellipse cx="51" cy="61" rx="28" ry="26" fill="rgba(0,0,0,0.25)"/>
+    <!-- Elytra (wing covers) -->
+    <path d="M50 22 Q78 22 80 58 Q78 80 50 82 Q22 80 20 58 Q22 22 50 22Z" fill="#d42020"/>
+    <!-- Centre split line -->
+    <line x1="50" y1="22" x2="50" y2="82" stroke="#1a1a1a" stroke-width="2.5"/>
+    <!-- Spots -->
+    <circle cx="35" cy="45" r="7"   fill="#1a1a1a"/>
+    <circle cx="65" cy="45" r="7"   fill="#1a1a1a"/>
+    <circle cx="34" cy="64" r="5.5" fill="#1a1a1a"/>
+    <circle cx="66" cy="64" r="5.5" fill="#1a1a1a"/>
+    <circle cx="50" cy="55" r="4"   fill="#1a1a1a"/>
+    <!-- Highlight on elytra -->
+    <ellipse cx="40" cy="33" rx="7" ry="5" fill="rgba(255,255,255,0.18)" transform="rotate(-20,40,33)"/>
+    <!-- Head -->
+    <ellipse cx="50" cy="22" rx="14" ry="12" fill="#1a1a1a"/>
+    <!-- Eyes -->
+    <circle cx="43" cy="19" r="3.5" fill="#fff"/>
+    <circle cx="57" cy="19" r="3.5" fill="#fff"/>
+    <circle cx="44" cy="19" r="2"   fill="#1a1a1a"/>
+    <circle cx="58" cy="19" r="2"   fill="#1a1a1a"/>
+    <circle cx="44.5" cy="18.2" r=".7" fill="#fff"/>
+    <circle cx="58.5" cy="18.2" r=".7" fill="#fff"/>
+  </svg>`;
+}
+
+// Player B: Grillon (cricket) — dark green & amber
+function svgCricket() {
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <!-- Long antennae -->
+    <path d="M40 20 Q28 10 15 2" fill="none" stroke="#4a6a30" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M60 20 Q72 10 85 2" fill="none" stroke="#4a6a30" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Hind jumping legs (large) -->
+    <path d="M68 60 Q85 48 90 38" fill="none" stroke="#3a5a22" stroke-width="3" stroke-linecap="round"/>
+    <path d="M90 38 Q95 55 88 72"  fill="none" stroke="#3a5a22" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M32 60 Q15 48 10 38" fill="none" stroke="#3a5a22" stroke-width="3" stroke-linecap="round"/>
+    <path d="M10 38 Q5 55 12 72"  fill="none" stroke="#3a5a22" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Middle legs -->
+    <line x1="35" y1="55" x2="16" y2="50" stroke="#3a5a22" stroke-width="2" stroke-linecap="round"/>
+    <line x1="65" y1="55" x2="84" y2="50" stroke="#3a5a22" stroke-width="2" stroke-linecap="round"/>
+    <!-- Front legs -->
+    <line x1="37" y1="42" x2="20" y2="35" stroke="#3a5a22" stroke-width="2" stroke-linecap="round"/>
+    <line x1="63" y1="42" x2="80" y2="35" stroke="#3a5a22" stroke-width="2" stroke-linecap="round"/>
+    <!-- Wings (translucent) -->
+    <ellipse cx="50" cy="55" rx="24" ry="20" fill="rgba(120,180,80,0.18)" stroke="rgba(120,180,80,0.35)" stroke-width="1"/>
+    <ellipse cx="50" cy="52" rx="20" ry="18" fill="rgba(100,160,60,0.15)" stroke="rgba(100,160,60,0.3)"  stroke-width="1"/>
+    <!-- Wing veins -->
+    <path d="M38 40 Q50 50 62 40" fill="none" stroke="rgba(100,160,60,0.25)" stroke-width="1"/>
+    <path d="M40 50 Q50 57 60 50" fill="none" stroke="rgba(100,160,60,0.2)" stroke-width="1"/>
+    <!-- Body -->
+    <ellipse cx="50" cy="58" rx="20" ry="24" fill="#4a7a28"/>
+    <!-- Abdomen segments -->
+    <path d="M32 58 Q50 56 68 58" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/>
+    <path d="M31 64 Q50 62 69 64" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/>
+    <path d="M32 70 Q50 68 68 70" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/>
+    <!-- Thorax -->
+    <ellipse cx="50" cy="42" rx="16" ry="12" fill="#5a8e32"/>
+    <!-- Body highlight -->
+    <ellipse cx="44" cy="50" rx="5" ry="9" fill="rgba(255,255,255,0.1)" transform="rotate(-15,44,50)"/>
+    <!-- Head -->
+    <ellipse cx="50" cy="24" rx="13" ry="11" fill="#3a6020"/>
+    <!-- Eyes -->
+    <circle cx="42" cy="21" r="4"   fill="#e8a020"/>
+    <circle cx="58" cy="21" r="4"   fill="#e8a020"/>
+    <circle cx="42" cy="21" r="2.2" fill="#1a1a1a"/>
+    <circle cx="58" cy="21" r="2.2" fill="#1a1a1a"/>
+    <circle cx="42.7" cy="20.2" r=".8" fill="#fff"/>
+    <circle cx="58.7" cy="20.2" r=".8" fill="#fff"/>
+    <!-- Mandibles -->
+    <path d="M45 31 Q43 35 41 33" fill="none" stroke="#2a4a18" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M55 31 Q57 35 59 33" fill="none" stroke="#2a4a18" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// ── Build background ────────────────────────────────────────────────────────
+function buildBg() {
+  const layer = document.getElementById('bgLayer');
+  // Big leaves
+  const leafData = [
+    {w:300,h:500,t:'-8%',l:'-6%',r0:'-20deg',r1:'-14deg',d:0},
+    {w:260,h:420,t:'10%',l:'-4%',r0:'-30deg',r1:'-24deg',d:1.5},
+    {w:280,h:460,t:'-5%',r:'-5%',r0:'20deg',r1:'14deg',d:3},
+    {w:240,h:400,t:'15%',r:'-3%',r0:'30deg',r1:'24deg',d:1},
+    {w:200,h:340,b:'-5%',l:'10%',r0:'-10deg',r1:'-5deg',d:4},
+    {w:220,h:360,b:'-8%',r:'8%',r0:'15deg',r1:'10deg',d:2},
+  ];
+  leafData.forEach((l,i) => {
+    const el = document.createElement('div');
+    el.className = 'leaf-bg';
+    el.style.cssText = `
+      width:${l.w}px; height:${l.h}px;
+      background: radial-gradient(ellipse, #4a8a30, #1a4a14);
+      top:${l.t||''}; left:${l.l||''}; right:${l.r||''}; bottom:${l.b||''};
+      --r0:${l.r0}; --r1:${l.r1};
+      animation-delay: -${l.d}s;
+      animation-duration: ${7+l.d}s;
+    `;
+    layer.appendChild(el);
+  });
+
+  // Fireflies
+  for (let i=0; i<18; i++) {
+    const ff = document.createElement('div');
+    ff.className = 'firefly';
+    const x = Math.random()*100, y = Math.random()*100;
+    const tx = (Math.random()-0.5)*160, ty = (Math.random()-0.5)*160;
+    const dur = 4+Math.random()*8, del = -Math.random()*10;
+    const isAmber = Math.random()>.6;
+    ff.style.cssText = `
+      left:${x}vw; top:${y}vh;
+      background:${isAmber?'#ffb830':'#7fff5a'};
+      box-shadow: 0 0 6px 2px ${isAmber?'#ffb830':'#7fff5a'};
+      --dur:${dur}s; --delay:${del}s;
+      --tx:${tx}px; --ty:${ty}px;
+    `;
+    layer.appendChild(ff);
+  }
+}
+
+// ── Build grid ─────────────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.i = i;
+    cell.addEventListener('click', () => handleClick(i));
+    grid.appendChild(cell);
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach((cell, i) => {
+    const val = board[i];
+    if (val && !cell.querySelector('.insect-wrap')) {
+      const wrap = document.createElement('div');
+      wrap.className = 'insect-wrap';
+      wrap.innerHTML = val === 'A' ? svgLadybug() : svgCricket();
+      cell.appendChild(wrap);
+      cell.classList.add('taken');
+    }
+  });
+
+  // Turn indicators
+  document.getElementById('boxA').classList.toggle('active-turn', current==='A' && !gameOver);
+  document.getElementById('boxB').classList.toggle('active-turn', current==='B' && !gameOver);
+}
+
+// ── Handle click ───────────────────────────────────────────────────────────
+function handleClick(i) {
+  if (gameOver || board[i] || aiThinking) return;
+  board[i] = current;
+  render();
+  const result = checkResult();
+  if (!result) {
+    current = current === 'A' ? 'B' : 'A';
+    updateStatus();
+    if (vsAI && current === 'B') {
+      aiThinking = true;
+      document.getElementById('status').textContent = '🤔 L\'IA réfléchit…';
+      setTimeout(aiMove, 500);
+    }
+  }
+}
+
+// ── AI (minimax) ───────────────────────────────────────────────────────────
+function aiMove() {
+  const best = minimax(board, 'B', 0);
+  board[best.idx] = 'B';
+  render();
+  aiThinking = false;
+  const result = checkResult();
+  if (!result) {
+    current = 'A';
+    updateStatus();
+  }
+}
+
+function minimax(b, player, depth) {
+  const win = getWinner(b);
+  if (win === 'B') return { score:  10 - depth };
+  if (win === 'A') return { score: -10 + depth };
+  const empties = b.map((v,i)=>v?null:i).filter(v=>v!==null);
+  if (!empties.length) return { score: 0 };
+
+  const moves = empties.map(idx => {
+    const nb = [...b]; nb[idx] = player;
+    const result = minimax(nb, player==='B'?'A':'B', depth+1);
+    return { idx, score: result.score };
+  });
+
+  return player === 'B'
+    ? moves.reduce((a,b)=>b.score>a.score?b:a)
+    : moves.reduce((a,b)=>b.score<a.score?b:a);
+}
+
+// ── Check result ───────────────────────────────────────────────────────────
+function getWinner(b) {
+  for (const [a,c,d] of WINS) {
+    if (b[a] && b[a]===b[c] && b[c]===b[d]) return b[a];
+  }
+  return null;
+}
+
+function checkResult() {
+  const winner = getWinner(board);
+  if (winner) {
+    gameOver = true;
+    scores[winner]++;
+    document.getElementById('scoreA').textContent = scores.A;
+    document.getElementById('scoreB').textContent = scores.B;
+    drawWinLine(winner);
+    const name = winner==='A' ? '🐞 Coccinelle' : (vsAI ? '🤖 L\'IA' : '🦗 Grillon');
+    document.getElementById('status').textContent = `${name} gagne !`;
+    document.querySelectorAll('.cell').forEach(c=>c.style.cursor='default');
+    return true;
+  }
+  if (board.every(Boolean)) {
+    gameOver = true;
+    document.getElementById('status').textContent = '🍃 Égalité !';
+    return true;
+  }
+  return false;
+}
+
+// ── Win line ───────────────────────────────────────────────────────────────
+function drawWinLine(winner) {
+  let winCombo = null;
+  for (const combo of WINS) {
+    const [a,b,c] = combo;
+    if (board[a]===winner && board[b]===winner && board[c]===winner) {
+      winCombo = combo; break;
+    }
+  }
+  if (!winCombo) return;
+  winCombo.forEach(i => document.querySelectorAll('.cell')[i].classList.add('won'));
+}
+
+// ── Status text ────────────────────────────────────────────────────────────
+function updateStatus() {
+  const names = { A: '🐞 Coccinelle', B: vsAI ? '🤖 IA' : '🦗 Grillon' };
+  document.getElementById('status').textContent = `Tour de ${names[current]}`;
+}
+
+// ── Restart ────────────────────────────────────────────────────────────────
+function restart() {
+  board = Array(9).fill(null);
+  current = 'A';
+  gameOver = false;
+  aiThinking = false;
+  buildGrid();
+  updateStatus();
+  document.getElementById('boxA').classList.add('active-turn');
+  document.getElementById('boxB').classList.remove('active-turn');
+}
+
+// ── Toggle AI ──────────────────────────────────────────────────────────────
+document.getElementById('btnAI').addEventListener('click', () => {
+  vsAI = !vsAI;
+  document.getElementById('btnAI').textContent = vsAI ? 'vs Humain' : 'vs IA';
+  document.getElementById('modeLabel').textContent = vsAI ? 'Mode Solo (vs IA)' : 'Mode 2 joueurs';
+  document.getElementById('p2label').textContent = vsAI ? 'IA' : 'Joueur 2';
+  scores = { A: 0, B: 0 };
+  document.getElementById('scoreA').textContent = 0;
+  document.getElementById('scoreB').textContent = 0;
+  restart();
+});
+
+document.getElementById('btnRestart').addEventListener('click', restart);
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildBg();
+buildGrid();
+updateStatus();
+</script>
+</body>
+</html>
