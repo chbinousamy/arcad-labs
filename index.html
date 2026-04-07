@@ -24,6 +24,55 @@
   --glow-m:  0 0 12px #ff007a, 0 0 40px #ff007a33;
 }
 
+/* ── Light theme overrides ── */
+html.light body::before {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+}
+html.light body::after { opacity: 0.02; }
+
+html.light nav {
+  background: linear-gradient(180deg, rgba(234,236,248,0.97) 0%, transparent 100%);
+}
+
+html.light .nav-tag { color: #99aacc; }
+
+html.light .hero-title .line1 { color: #0a0a1a; }
+
+html.light .hero-sub { color: #6070a0; }
+
+html.light .game-card {
+  background: var(--bg2);
+  border-color: #d0d4f0;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+}
+html.light .game-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+html.light .card-title { color: #0a0a1a; }
+html.light .card-desc  { color: #8899bb; }
+html.light .game-card:hover .card-desc { color: #6070a0; }
+
+html.light .stat-val { color: #0a0a1a; }
+html.light .stat-label { color: #aabbcc; }
+
+html.light footer {
+  border-top-color: #d0d4f0;
+}
+html.light .footer-txt,
+html.light .footer-glyph { color: #c0c8dd; }
+
+html.light .hero-eyebrow { text-shadow: none; }
+
+html.light #cursor { border-color: var(--cyan); }
+html.light #cursor.hovering { border-color: var(--magenta); }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -127,8 +176,87 @@ nav {
 }
 
 /* ═══════════════════════════════════════════
-   HERO
+   THEME TOGGLE BUTTON
 ═══════════════════════════════════════════ */
+#themeToggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: 1px solid #1a1a3a;
+  border-radius: 999px;
+  padding: 6px 14px 6px 10px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #334;
+  transition: border-color 0.3s, color 0.3s, background 0.3s;
+  overflow: hidden;
+}
+#themeToggle:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* Track */
+.toggle-track {
+  position: relative;
+  width: 32px; height: 16px;
+  background: #0e0e2a;
+  border-radius: 999px;
+  transition: background 0.35s;
+  flex-shrink: 0;
+}
+html.light .toggle-track { background: #c8d0f0; }
+
+/* Thumb */
+.toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #334;
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.35s;
+}
+html.light .toggle-thumb {
+  transform: translateX(16px);
+  background: var(--cyan);
+}
+html:not(.light) .toggle-thumb {
+  background: #445;
+}
+
+/* Icons inside toggle */
+.toggle-icon-moon,
+.toggle-icon-sun {
+  font-size: 12px;
+  line-height: 1;
+  transition: opacity 0.3s, transform 0.3s;
+  flex-shrink: 0;
+}
+.toggle-icon-moon { opacity: 1; transform: rotate(0deg); }
+.toggle-icon-sun  { opacity: 0; transform: rotate(90deg) scale(0.6); position: absolute; left: 10px; }
+
+html.light .toggle-icon-moon { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+html.light .toggle-icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+
+html.light #themeToggle {
+  border-color: #c0c8e0;
+  color: #6070a0;
+}
+html.light #themeToggle:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* Nav right side layout */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 .hero {
   min-height: 100vh;
   display: flex;
@@ -536,7 +664,17 @@ footer {
 <!-- NAV -->
 <nav>
   <a class="nav-logo" href="#">SAMY<span>.</span>DEV</a>
-  <span class="nav-tag">ARCADE · LABS · v2.0</span>
+  <div class="nav-right">
+    <span class="nav-tag">ARCADE · LABS · v2.0</span>
+    <button id="themeToggle" title="Changer le thème" aria-label="Toggle theme">
+      <span class="toggle-icon-moon">🌙</span>
+      <span class="toggle-icon-sun">☀️</span>
+      <div class="toggle-track">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span id="themeLabel">SOMBRE</span>
+    </button>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -547,7 +685,7 @@ footer {
     <div class="hero-bracket float1" style="position:relative; display:inline-block; margin-bottom:0;">
     </div>
 
-    <p class="hero-eyebrow">// GAME COLLECTION · CHBINOU SAMY</p>
+    <p class="hero-eyebrow">// GAME COLLECTION · SAMY CHBINOUSAMY</p>
 
     <h1 class="hero-title">
       <span class="line1">ARCADE</span>
@@ -555,7 +693,7 @@ footer {
     </h1>
 
     <p class="hero-sub">
-      Jeux rétro &amp; indie.<br>
+      Jeux rétro &amp; indie développés en HTML5 canvas.<br>
       Space Invaders · Breakout · Pac-Man &amp; plus.
     </p>
 
@@ -615,8 +753,8 @@ footer {
 
 <!-- FOOTER -->
 <footer>
-  <span class="footer-txt">© 2026 · CHBINOU SAMY · TOUS DROITS RÉSERVÉS</span>
-  <span class="footer-glyph">ARCADE LABS</span>
+  <span class="footer-txt">© 2025 · SAMY CHBINOUSAMY · TOUS DROITS RÉSERVÉS</span>
+  <span class="footer-glyph">ARCADE LABS · HTML5</span>
 </footer>
 
 <script>
@@ -634,6 +772,24 @@ document.querySelectorAll('a, .game-card, button').forEach(el => {
   el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
   el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
 });
+
+// ════════════════════════════════════════════
+//  THEME TOGGLE
+// ════════════════════════════════════════════
+const html      = document.documentElement;
+const toggleBtn = document.getElementById('themeToggle');
+const themeLabel = document.getElementById('themeLabel');
+
+let isLight = localStorage.getItem('ah_theme') === 'light';
+function applyTheme(light) {
+  isLight = light;
+  html.classList.toggle('light', light);
+  themeLabel.textContent = light ? 'CLAIR' : 'SOMBRE';
+  localStorage.setItem('ah_theme', light ? 'light' : 'dark');
+}
+applyTheme(isLight); // restore on load
+
+toggleBtn.addEventListener('click', () => applyTheme(!isLight));
 
 // ════════════════════════════════════════════
 //  BACKGROUND CANVAS — Starfield + Grid
@@ -673,24 +829,32 @@ let bgT = 0;
 
 function drawBg() {
   const W = bgCanvas.width, H = bgCanvas.height;
+  const light = isLight;
   bgCtx.clearRect(0, 0, W, H);
 
-  // Deep space bg
+  // Background sky
   const skyGrad = bgCtx.createLinearGradient(0, 0, 0, H);
-  skyGrad.addColorStop(0, '#020209');
-  skyGrad.addColorStop(0.5, '#03030f');
-  skyGrad.addColorStop(1, '#020209');
+  if (light) {
+    skyGrad.addColorStop(0, '#dde2f5');
+    skyGrad.addColorStop(0.5, '#e8ecff');
+    skyGrad.addColorStop(1, '#dde2f5');
+  } else {
+    skyGrad.addColorStop(0, '#020209');
+    skyGrad.addColorStop(0.5, '#03030f');
+    skyGrad.addColorStop(1, '#020209');
+  }
   bgCtx.fillStyle = skyGrad;
   bgCtx.fillRect(0, 0, W, H);
 
-  // Perspective grid (horizon effect)
+  // Perspective grid
   bgCtx.save();
   const horizonY = H * 0.72;
+  const gridColor = light ? '0,100,180' : '0,255,231';
   for (let i = -20; i <= 20; i++) {
     const xVanish = W / 2;
     const xBase   = W / 2 + i * 90;
-    const alpha   = Math.max(0, 0.06 - Math.abs(i) * 0.003);
-    bgCtx.strokeStyle = `rgba(0,255,231,${alpha})`;
+    const alpha   = Math.max(0, (light ? 0.08 : 0.06) - Math.abs(i) * 0.003);
+    bgCtx.strokeStyle = `rgba(${gridColor},${alpha})`;
     bgCtx.lineWidth = 0.6;
     bgCtx.beginPath();
     bgCtx.moveTo(xVanish, horizonY);
@@ -700,8 +864,8 @@ function drawBg() {
   for (let j = 0; j < 10; j++) {
     const t     = j / 10;
     const yLine = horizonY + (H - horizonY + 60) * (t * t);
-    const alpha = 0.04 * (1 - t * 0.8);
-    bgCtx.strokeStyle = `rgba(0,255,231,${alpha})`;
+    const alpha = (light ? 0.06 : 0.04) * (1 - t * 0.8);
+    bgCtx.strokeStyle = `rgba(${gridColor},${alpha})`;
     bgCtx.lineWidth = 0.5;
     bgCtx.beginPath();
     bgCtx.moveTo(0, yLine);
@@ -711,10 +875,10 @@ function drawBg() {
   bgCtx.restore();
 
   // Nebula blobs
-  [[W * 0.15, H * 0.3, 260, '#00ffe7', 0.025],
-   [W * 0.85, H * 0.2, 200, '#ff007a', 0.02],
-   [W * 0.5,  H * 0.6, 300, '#0044ff', 0.018]
-  ].forEach(([nx, ny, nr, nc, na]) => {
+  const blobs = light
+    ? [[W*0.15, H*0.3, 240, '#0088cc', 0.06], [W*0.85, H*0.2, 180, '#cc0055', 0.05], [W*0.5, H*0.6, 260, '#4455ff', 0.04]]
+    : [[W*0.15, H*0.3, 260, '#00ffe7', 0.025], [W*0.85, H*0.2, 200, '#ff007a', 0.02], [W*0.5, H*0.6, 300, '#0044ff', 0.018]];
+  blobs.forEach(([nx, ny, nr, nc, na]) => {
     const ng = bgCtx.createRadialGradient(nx, ny, 0, nx, ny, nr);
     ng.addColorStop(0, nc + Math.round(na * 255).toString(16).padStart(2,'0'));
     ng.addColorStop(1, 'transparent');
@@ -724,13 +888,13 @@ function drawBg() {
     bgCtx.fill();
   });
 
-  // Stars
+  // Stars (dimmer + blueish in light mode)
   bgT += 0.016;
   for (const s of STARS) {
     s.twk += s.speed * 60;
-    const a = s.alpha * (0.6 + 0.4 * Math.sin(s.twk));
+    const a = (light ? 0.15 : 1) * s.alpha * (0.6 + 0.4 * Math.sin(s.twk));
     bgCtx.globalAlpha = a;
-    bgCtx.fillStyle = '#c8d8ff';
+    bgCtx.fillStyle = light ? '#6688bb' : '#c8d8ff';
     bgCtx.beginPath();
     bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
     bgCtx.fill();
@@ -744,11 +908,11 @@ function drawBg() {
     if (p.x < -10 || p.x > W + 10 || p.y < -10 || p.y > H + 10) {
       p.x = Math.random() * W; p.y = Math.random() * H;
     }
-    const a = 0.3 + 0.3 * Math.sin(p.life * Math.PI * 2);
+    const a = (light ? 0.18 : 0.3) + 0.2 * Math.sin(p.life * Math.PI * 2);
     bgCtx.globalAlpha = a;
-    bgCtx.shadowColor = `hsl(${p.hue},100%,60%)`;
-    bgCtx.shadowBlur  = 8;
-    bgCtx.fillStyle   = `hsl(${p.hue},100%,65%)`;
+    bgCtx.shadowColor = `hsl(${p.hue},80%,${light ? 40 : 60}%)`;
+    bgCtx.shadowBlur  = light ? 4 : 8;
+    bgCtx.fillStyle   = `hsl(${p.hue},80%,${light ? 45 : 65}%)`;
     bgCtx.beginPath();
     bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     bgCtx.fill();
@@ -757,8 +921,9 @@ function drawBg() {
   bgCtx.globalAlpha = 1;
 
   // Mouse-following glow
+  const glowColor = light ? 'rgba(0,120,180,0.04)' : 'rgba(0,255,231,0.04)';
   const mg = bgCtx.createRadialGradient(mx, my, 0, mx, my, 180);
-  mg.addColorStop(0, 'rgba(0,255,231,0.04)');
+  mg.addColorStop(0, glowColor);
   mg.addColorStop(1, 'transparent');
   bgCtx.fillStyle = mg;
   bgCtx.fillRect(0, 0, W, H);
@@ -906,7 +1071,7 @@ document.querySelectorAll('.game-card').forEach(card => {
       ripple.style.opacity   = '0';
     });
     setTimeout(() => ripple.remove(), 600);
-    // e.preventDefault(); // Remove this line when real URLs are set
+    e.preventDefault(); // Remove this line when real URLs are set
   });
 });
 
